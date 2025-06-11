@@ -6,7 +6,10 @@ import java.util.concurrent.TimeUnit;
 import static org.example.Control.scheduler;
 
 public class Main {
+
+    public static long startTime = System.nanoTime();
     public static void main(String[] args) throws JMSException {
+
         RedisConnector.initPool("192.168.43.69", 6379, null);
 
         Control control = new Control();
@@ -23,9 +26,13 @@ public class Main {
                     }
                 },
                 0,  // 初始延迟（0 表示立即执行）
-                100,  // 执行间隔（1 秒）
+                500,  // 执行间隔（1 秒）
                 TimeUnit.MILLISECONDS  // 时间单位改为毫秒
         );
 
+
+
     }
+
+
 }

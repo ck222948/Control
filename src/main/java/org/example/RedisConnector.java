@@ -17,7 +17,7 @@ public class RedisConnector{
 
     // 静态初始化连接池
     static {
-        initPool("172.17.0.2", 6379, null);
+        initPool("192.168.43.69", 6379, null);
     }
 
     /**
@@ -30,8 +30,8 @@ public class RedisConnector{
         JedisPoolConfig config = new JedisPoolConfig();
         config.setMaxTotal(MAX_TOTAL);
         config.setMaxIdle(MAX_IDLE);
-        config.setTestOnBorrow(true); // 验证连接可用性
 
+        config.setTestOnBorrow(false); // 禁用借出时测试（提升性能）
         jedisPool = new JedisPool(config, host, port, TIMEOUT, password);
     }
 
@@ -248,6 +248,18 @@ public class RedisConnector{
     public static void closePool() {
         if (jedisPool != null && !jedisPool.isClosed()) {
             jedisPool.close();
+        }
+    }
+    /**
+     * 从列表中移除元素
+     * @param key 列表键名
+     * @param count 移除数量（0表示全部匹配项）
+     * @param value 要移除的值
+     * @return 实际移除的元素数量
+     */
+    public static long lrem(String key, long count, String value) {
+        try (Jedis jedis = getConnection()) {
+            return jedis.lrem(key, count, value);
         }
     }
 

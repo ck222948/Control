@@ -1,4 +1,7 @@
 package org.example;
+import redis.clients.jedis.Jedis;
+import redis.clients.jedis.Pipeline;
+
 import javax.jms.JMSException;
 import java.util.Collections;
 import java.util.List;
@@ -13,6 +16,7 @@ public class Control{
     private static final String CAR_QUEUE = "UpdateCar";
     private static final String NAVI_QUEUE = "UpdateNavigate";
     private static final String DISPLAY_QUEUE = "UpdateView";
+    public long endTime;
 
     // 数据库状态标志
     private volatile String IsCarOpen;
@@ -117,7 +121,7 @@ catch (Exception e) {
      * 停止所有任务并释放资源（新增方法）
      */
     public void stopAllTasks() {
-        System.out.println("开始停止所有任务...");
+
 
         // 1. 取消定时任务
         if (statusCheckFuture != null && !statusCheckFuture.isCancelled()) {
@@ -152,7 +156,10 @@ catch (Exception e) {
         }
 
         // 5. 完全退出程序
-        System.out.println("程序即将退出");
+        System.out.println("程序退出");
+        endTime = System.nanoTime();
+        long duration = endTime - Main.startTime;
+        System.out.println("程序运行时间：" + duration/1000000+ " 毫秒");
         System.exit(0); // 正常退出
     }
 
@@ -172,7 +179,7 @@ catch (Exception e) {
     /**
      * 处理小车消息队列
      */
-    private void handleCarMessages() {
+   /* private void handleCarMessages() {
         try {
             CarNumber=Integer.parseInt(RedisConnector.get("CarNumber"));
 
@@ -194,6 +201,59 @@ catch (Exception e) {
             System.err.println("[小车] 发送失败: " + e.getMessage());
         }
 
+    }*/
+
+    /**
+     * 优化后的处理小车消息队列方法
+     */
+    private void handleCarMessages() {
+        try {
+            // 1. 使用线程池并行处理小车任务
+            ExecutorService carExecutor = Executors.newFixedThreadPool(10); // 根据小车数量调整
+
+            // 2. 一次性获取所有小车数量
+            CarNumber = Integer.parseInt(RedisConnector.get("CarNumber"));
+
+            // 3. 使用Redis管道批量获取任务列表
+            try (Jedis jedis = RedisConnector.getConnection()) {
+                Pipeline pipeline = jedis.pipelined();
+
+                // 预先收集所有LRANGE命令
+                for (int i = 1; i <= CarNumber; i++) {
+                    pipeline.lrange("Car00" + i + "TaskList", 0, -1);
+                }
+
+                // 批量执行并获取结果
+                List<Object> results = pipeline.syncAndReturnAll();
+
+                // 4. 并行处理每个小车
+                for (int i = 0; i < results.size(); i++) {
+                    final int carIndex = i + 1;
+                    @SuppressWarnings("unchecked")
+                    List<String> taskList = (List<String>) results.get(i);
+
+                    carExecutor.submit(() -> {
+                        try {
+                            if (taskList != null && !taskList.isEmpty()) {
+                                // 5. 直接发送最新任务（不反转列表）
+                                String cmd = "00" + carIndex;
+                                carQueue.sendTask(cmd);
+                                System.out.println("[小车] 指令已发送: " + cmd);
+
+
+                            }
+                        } catch (Exception e) {
+                            System.err.println("[小车" + carIndex + "] 处理异常: " + e.getMessage());
+                        }
+                    });
+                }
+
+                carExecutor.shutdown();
+                carExecutor.awaitTermination(1, TimeUnit.SECONDS);
+            }
+        } catch (Exception e) {
+            System.err.println("[小车控制] 系统错误: " + e.getMessage());
+        }
     }
     /**
      * 发送导航指令

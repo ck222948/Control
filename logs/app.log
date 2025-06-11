@@ -77,3 +77,37 @@ Caused by: java.net.SocketException: Connection reset
 2025-05-28 15:56:39 [main] ERROR LogTest:11 - This is an error message
 2025-05-29 19:59:33 [main] INFO  LogTest:10 - This is an info message
 2025-05-29 19:59:33 [main] ERROR LogTest:11 - This is an error message
+2025-06-11 15:52:19 [pool-1-thread-1] ERROR JedisFactory:223 - Error while validating pooled Jedis object.
+redis.clients.jedis.exceptions.JedisConnectionException: java.net.SocketTimeoutException: Read timed out
+	at redis.clients.jedis.util.RedisInputStream.ensureFill(RedisInputStream.java:208)
+	at redis.clients.jedis.util.RedisInputStream.readByte(RedisInputStream.java:46)
+	at redis.clients.jedis.Protocol.process(Protocol.java:126)
+	at redis.clients.jedis.Protocol.read(Protocol.java:192)
+	at redis.clients.jedis.Connection.readProtocolWithCheckingBroken(Connection.java:316)
+	at redis.clients.jedis.Connection.getStatusCodeReply(Connection.java:243)
+	at redis.clients.jedis.Jedis.ping(Jedis.java:356)
+	at redis.clients.jedis.JedisFactory.validateObject(JedisFactory.java:221)
+	at org.apache.commons.pool2.impl.GenericObjectPool.borrowObject(GenericObjectPool.java:343)
+	at org.apache.commons.pool2.impl.GenericObjectPool.borrowObject(GenericObjectPool.java:223)
+	at redis.clients.jedis.util.Pool.getResource(Pool.java:34)
+	at redis.clients.jedis.JedisPool.getResource(JedisPool.java:373)
+	at org.example.RedisConnector.getConnection(RedisConnector.java:43)
+	at org.example.RedisConnector.lrAll(RedisConnector.java:121)
+	at org.example.Control.sendNaviCommand(Control.java:207)
+	at org.example.Control.checkSystemStatus(Control.java:66)
+	at org.example.Control.lambda$main$0(Control.java:238)
+	at java.base/java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:539)
+	at java.base/java.util.concurrent.FutureTask.runAndReset(FutureTask.java:305)
+	at java.base/java.util.concurrent.ScheduledThreadPoolExecutor$ScheduledFutureTask.run(ScheduledThreadPoolExecutor.java:305)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1136)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:635)
+	at java.base/java.lang.Thread.run(Thread.java:833)
+Caused by: java.net.SocketTimeoutException: Read timed out
+	at java.base/sun.nio.ch.NioSocketImpl.timedRead(NioSocketImpl.java:283)
+	at java.base/sun.nio.ch.NioSocketImpl.implRead(NioSocketImpl.java:309)
+	at java.base/sun.nio.ch.NioSocketImpl.read(NioSocketImpl.java:350)
+	at java.base/sun.nio.ch.NioSocketImpl$1.read(NioSocketImpl.java:803)
+	at java.base/java.net.Socket$SocketInputStream.read(Socket.java:966)
+	at java.base/java.io.InputStream.read(InputStream.java:218)
+	at redis.clients.jedis.util.RedisInputStream.ensureFill(RedisInputStream.java:202)
+	... 22 more
