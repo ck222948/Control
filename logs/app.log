@@ -1,0 +1,79 @@
+2025-05-21 09:53:50 [main] INFO  TEST:10 - 测试日志输出
+2025-05-21 09:54:19 [main] INFO  TEST:10 - This is an info message
+2025-05-21 09:54:19 [main] ERROR TEST:11 - This is an error message
+2025-05-22 15:30:24 [main] ERROR JedisFactory:223 - Error while validating pooled Jedis object.
+redis.clients.jedis.exceptions.JedisConnectionException: java.net.SocketException: Connection reset
+	at redis.clients.jedis.util.RedisInputStream.ensureFill(RedisInputStream.java:208)
+	at redis.clients.jedis.util.RedisInputStream.readByte(RedisInputStream.java:46)
+	at redis.clients.jedis.Protocol.process(Protocol.java:126)
+	at redis.clients.jedis.Protocol.read(Protocol.java:192)
+	at redis.clients.jedis.Connection.readProtocolWithCheckingBroken(Connection.java:316)
+	at redis.clients.jedis.Connection.getStatusCodeReply(Connection.java:243)
+	at redis.clients.jedis.Jedis.ping(Jedis.java:356)
+	at redis.clients.jedis.JedisFactory.validateObject(JedisFactory.java:221)
+	at org.apache.commons.pool2.impl.GenericObjectPool.borrowObject(GenericObjectPool.java:343)
+	at org.apache.commons.pool2.impl.GenericObjectPool.borrowObject(GenericObjectPool.java:223)
+	at redis.clients.jedis.util.Pool.getResource(Pool.java:34)
+	at redis.clients.jedis.JedisPool.getResource(JedisPool.java:373)
+	at org.example.RedisConnector.getConnection(RedisConnector.java:43)
+	at org.example.RedisConnector.set(RedisConnector.java:53)
+	at org.example.Control.main(Control.java:10)
+Caused by: java.net.SocketException: Connection reset
+	at java.base/sun.nio.ch.NioSocketImpl.implRead(NioSocketImpl.java:323)
+	at java.base/sun.nio.ch.NioSocketImpl.read(NioSocketImpl.java:350)
+	at java.base/sun.nio.ch.NioSocketImpl$1.read(NioSocketImpl.java:803)
+	at java.base/java.net.Socket$SocketInputStream.read(Socket.java:966)
+	at java.base/java.io.InputStream.read(InputStream.java:218)
+	at redis.clients.jedis.util.RedisInputStream.ensureFill(RedisInputStream.java:202)
+	... 14 more
+2025-05-22 15:31:03 [main] ERROR JedisFactory:223 - Error while validating pooled Jedis object.
+redis.clients.jedis.exceptions.JedisConnectionException: java.net.SocketException: Connection reset by peer
+	at redis.clients.jedis.Connection.flush(Connection.java:306)
+	at redis.clients.jedis.Connection.getStatusCodeReply(Connection.java:242)
+	at redis.clients.jedis.Jedis.ping(Jedis.java:356)
+	at redis.clients.jedis.JedisFactory.validateObject(JedisFactory.java:221)
+	at org.apache.commons.pool2.impl.GenericObjectPool.borrowObject(GenericObjectPool.java:343)
+	at org.apache.commons.pool2.impl.GenericObjectPool.borrowObject(GenericObjectPool.java:223)
+	at redis.clients.jedis.util.Pool.getResource(Pool.java:34)
+	at redis.clients.jedis.JedisPool.getResource(JedisPool.java:373)
+	at org.example.RedisConnector.getConnection(RedisConnector.java:43)
+	at org.example.RedisConnector.set(RedisConnector.java:53)
+	at org.example.Control.main(Control.java:10)
+Caused by: java.net.SocketException: Connection reset by peer
+	at java.base/sun.nio.ch.NioSocketImpl.implWrite(NioSocketImpl.java:420)
+	at java.base/sun.nio.ch.NioSocketImpl.write(NioSocketImpl.java:440)
+	at java.base/sun.nio.ch.NioSocketImpl$2.write(NioSocketImpl.java:826)
+	at java.base/java.net.Socket$SocketOutputStream.write(Socket.java:1035)
+	at redis.clients.jedis.util.RedisOutputStream.flushBuffer(RedisOutputStream.java:57)
+	at redis.clients.jedis.util.RedisOutputStream.flush(RedisOutputStream.java:138)
+	at redis.clients.jedis.Connection.flush(Connection.java:303)
+	... 10 more
+2025-05-22 15:34:37 [main] ERROR JedisFactory:223 - Error while validating pooled Jedis object.
+redis.clients.jedis.exceptions.JedisConnectionException: java.net.SocketException: Connection reset
+	at redis.clients.jedis.util.RedisInputStream.ensureFill(RedisInputStream.java:208)
+	at redis.clients.jedis.util.RedisInputStream.readByte(RedisInputStream.java:46)
+	at redis.clients.jedis.Protocol.process(Protocol.java:126)
+	at redis.clients.jedis.Protocol.read(Protocol.java:192)
+	at redis.clients.jedis.Connection.readProtocolWithCheckingBroken(Connection.java:316)
+	at redis.clients.jedis.Connection.getStatusCodeReply(Connection.java:243)
+	at redis.clients.jedis.Jedis.ping(Jedis.java:356)
+	at redis.clients.jedis.JedisFactory.validateObject(JedisFactory.java:221)
+	at org.apache.commons.pool2.impl.GenericObjectPool.borrowObject(GenericObjectPool.java:343)
+	at org.apache.commons.pool2.impl.GenericObjectPool.borrowObject(GenericObjectPool.java:223)
+	at redis.clients.jedis.util.Pool.getResource(Pool.java:34)
+	at redis.clients.jedis.JedisPool.getResource(JedisPool.java:373)
+	at org.example.RedisConnector.getConnection(RedisConnector.java:43)
+	at org.example.RedisConnector.set(RedisConnector.java:53)
+	at org.example.Control.main(Control.java:10)
+Caused by: java.net.SocketException: Connection reset
+	at java.base/sun.nio.ch.NioSocketImpl.implRead(NioSocketImpl.java:323)
+	at java.base/sun.nio.ch.NioSocketImpl.read(NioSocketImpl.java:350)
+	at java.base/sun.nio.ch.NioSocketImpl$1.read(NioSocketImpl.java:803)
+	at java.base/java.net.Socket$SocketInputStream.read(Socket.java:966)
+	at java.base/java.io.InputStream.read(InputStream.java:218)
+	at redis.clients.jedis.util.RedisInputStream.ensureFill(RedisInputStream.java:202)
+	... 14 more
+2025-05-28 15:56:39 [main] INFO  LogTest:10 - This is an info message
+2025-05-28 15:56:39 [main] ERROR LogTest:11 - This is an error message
+2025-05-29 19:59:33 [main] INFO  LogTest:10 - This is an info message
+2025-05-29 19:59:33 [main] ERROR LogTest:11 - This is an error message
