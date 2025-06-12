@@ -211,8 +211,13 @@ catch (Exception e) {
             // 1. 使用线程池并行处理小车任务
             ExecutorService carExecutor = Executors.newFixedThreadPool(10); // 根据小车数量调整
 
+            String CarNumberString=RedisConnector.get("CarNumber");
+            if (CarNumberString==null) {
+                CarNumber=0;
+            }
             // 2. 一次性获取所有小车数量
-            CarNumber = Integer.parseInt(RedisConnector.get("CarNumber"));
+          else
+              CarNumber = Integer.parseInt(RedisConnector.get("CarNumber"));
 
             // 3. 使用Redis管道批量获取任务列表
             try (Jedis jedis = RedisConnector.getConnection()) {
@@ -262,7 +267,12 @@ catch (Exception e) {
         try {
 
             NaviNumber=Integer.parseInt(RedisConnector.get("IsNaviOpen"));
-            CarNumber=Integer.parseInt(RedisConnector.get("CarNumber"));
+            String CarNumberString=RedisConnector.get("CarNumber");
+            if (CarNumberString==null) {
+                CarNumber=0;
+            }
+          else
+              CarNumber=Integer.parseInt(RedisConnector.get("CarNumber"));
             for(int i=1;i<=CarNumber;i++) {
                 List<String> list= RedisConnector.lrAll("Car00"+i+"TaskList");
                 if (list==null||list.isEmpty()) {
