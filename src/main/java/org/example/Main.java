@@ -46,7 +46,7 @@ public class Main {
                     }
                 },
                 0,  // 初始延迟（0 表示立即执行）
-                100,  // 执行间隔（1 秒）
+                200,  // 执行间隔（1 秒）
                 TimeUnit.MILLISECONDS  // 时间单位改为毫秒
         );
     }

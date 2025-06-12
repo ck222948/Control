@@ -71,6 +71,7 @@ public class Control{
 
 
             }
+
             // 3. 小车队列逻辑
             if (IsCarOpen!=null&&Objects.equals(IsCarOpen, "1")) {
                 handleCarMessages();
