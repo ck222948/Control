@@ -1,62 +1,50 @@
 package org.example;
+
 import redis.clients.jedis.*;
 import redis.clients.jedis.args.BitOP;
 import redis.clients.jedis.exceptions.JedisConnectionException;
+
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
-/**
- * Redis 连接管理工具类（基于 Jedis）
- * 功能：连接池管理、数据读写、事务支持、发布订阅等
- */
-public class RedisConnector{
+public class RedisConnector {
     private static JedisPool jedisPool;
     private static final int MAX_TOTAL = 128;      // 最大连接数
     private static final int MAX_IDLE = 32;        // 最大空闲连接
     private static final int TIMEOUT = 2000;       // 连接超时（毫秒）
+
     // 重连机制配置
     private static final int RECONNECT_INTERVAL = 2000; // 重连间隔(毫秒)
     private static final int MAX_RETRY_TIMES = 5;       // 最大重试次数
-    private static volatile boolean isReconnecting = false; // 是否正在重连
+    public static volatile boolean isReconnecting = false; // 是否正在重连
+
     // 静态初始化连接池
     static {
-        initPool("192.168.43.69", 6379, null);
+        initPool("192.168.43.69", 6379, null);  // 默认连接配置
     }
 
-    /**
-     * 初始化连接池
-     * @param host     Redis服务器地址
-     * @param port     端口
-     * @param password 密码（无密码传null）
-     */
+    // 初始化连接池
     public static void initPool(String host, int port, String password) {
         JedisPoolConfig config = new JedisPoolConfig();
         config.setMaxTotal(MAX_TOTAL);
         config.setMaxIdle(MAX_IDLE);
-
         config.setTestOnBorrow(false); // 禁用借出时测试（提升性能）
-        jedisPool = new JedisPool(config, host, port, TIMEOUT, password);
-        // 添加连接测试
-        try (Jedis jedis = jedisPool.getResource()) {
-            jedis.ping(); // 实际测试连接
-            System.out.println("Redis连接池初始化成功");
 
-         }catch (Exception e) {
+        jedisPool = new JedisPool(config, host, port, TIMEOUT, password);
+
+        // 测试连接池是否正常
+        try (Jedis jedis = jedisPool.getResource()) {
+            jedis.ping();  // 测试连接
+            System.out.println("Redis连接池初始化成功");
+        } catch (Exception e) {
             System.err.println("Redis连接池初始化失败: " + e.getMessage());
-            startReconnectThread("192.168.43.69", 6379, null);
+            startReconnectThread("192.168.43.69", 6379, null);  // 启动重连线程
         }
     }
 
-    /**
-     * 获取Jedis连接 看看（用完必须调用close()归还）
-     */
+    // 获取Jedis连接，重连机制
     public static Jedis getConnection() {
-       /* try {
-            return jedisPool.getResource();
-        } catch (JedisConnectionException e) {
-            throw new RuntimeException("Redis连接失败: " + e.getMessage(), e);
-        }*/
         int retryCount = 0;
 
         while (retryCount <= MAX_RETRY_TIMES) {
@@ -66,8 +54,7 @@ public class RedisConnector{
                 }
 
                 Jedis jedis = jedisPool.getResource();
-                // 简单测试连接是否有效
-                jedis.ping();
+                jedis.ping();  // 简单测试连接是否有效
                 return jedis;
 
             } catch (JedisConnectionException e) {
@@ -77,7 +64,7 @@ public class RedisConnector{
                 if (retryCount <= MAX_RETRY_TIMES) {
                     // 启动异步重连线程
                     if (!isReconnecting) {
-                        startReconnectThread("192.168.43.69", 6379, null);
+                        startReconnectThread("192.168.43.69", 6379, null);  // 启动重连
                     }
 
                     try {
@@ -90,21 +77,19 @@ public class RedisConnector{
                 }
             }
         }
-
         throw new RuntimeException("无法获取Redis连接");
     }
-    /**
-     * 启动异步重连线程
-     */
+
+    // 启动异步重连线程
     private static synchronized void startReconnectThread(String host, int port, String password) {
         if (isReconnecting) {
+            System.out.println("重连任务正在进行中，跳过此次重连");
             return;
         }
 
         isReconnecting = true;
         new Thread(() -> {
             System.out.println("启动Redis重连线程...");
-
             int attempt = 0;
             boolean success = false;
 
@@ -134,7 +119,6 @@ public class RedisConnector{
                     }
                 } catch (Exception e) {
                     System.err.println("Redis重连失败: " + e.getMessage());
-
                     if (attempt < MAX_RETRY_TIMES) {
                         try {
                             TimeUnit.MILLISECONDS.sleep(RECONNECT_INTERVAL);
@@ -372,15 +356,6 @@ public class RedisConnector{
 
     // ------------ 测试用例 ------------
     public static void main(String[] args) {
-        // 1. 初始化连接
-        RedisConnector.initPool("192.168.43.69", 6379, null);
-
-        //
-
-
-
-
-
         // 4. 关闭连接池
         RedisConnector.closePool();
     }

@@ -1,129 +1,175 @@
 package org.example;
 
-import org.apache.activemq.ActiveMQConnectionFactory;
 import com.google.gson.Gson;
+import org.apache.activemq.ActiveMQConnectionFactory;
 
 import javax.jms.*;
-import java.util.concurrent.TimeoutException;
+import java.util.concurrent.*;
 
-/**
- * ActiveMQ 任务队列工具类
- * 功能：消息发送、消费、队列声明、异常处理
- */
 public class ActiveMQTaskQueue {
-    private final Connection connection;// ActiveMQ连接对象
-    private final Session session;// 会话对象（生产/消费消息）
-    private final Gson gson = new Gson();// JSON序列化工具
-    private final String queueName;// 队列名称
+    private final String brokerUrl; // ActiveMQ Broker 的 URL
+    private final String queueName; // 队列名称
+    private final Gson gson = new Gson(); // Gson 用于对象和 JSON 字符串之间的转换
 
-    /**
-     * 初始化连接和队列
-     * @param brokerUrl  ActiveMQ服务器地址
-     * @param queueName  队列名称
-     */
+    private Connection connection; // ActiveMQ 连接
+    private Session session; // JMS 会话
+
+    private static final int MAX_RETRIES = 5; // 最大重试次数
+    private static final int RETRY_DELAY_MS = 2000; // 重试之间的延迟时间（单位：毫秒）
+
+    // 构造方法：初始化队列连接并尝试连接到 ActiveMQ
     public ActiveMQTaskQueue(String brokerUrl, String queueName) throws JMSException {
-        ConnectionFactory factory = new ActiveMQConnectionFactory(brokerUrl);// 1. 创建连接工厂
-        this.connection = factory.createConnection();// 2. 创建连接并启动
-        this.connection.start();//启动
-        this.session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);//  3. 创建会话（非事务，自动ACK）
-        this.queueName = queueName;// 保存队列名
+        this.brokerUrl = brokerUrl;
+        this.queueName = queueName;
+        tryConnect(); // 调用连接方法，尝试连接
     }
 
     /**
-     * 发送任务消息（自动转为JSON）
-     * @param task 可序列化的任务对象
+     * 封装连接尝试（带重试机制）
+     * 如果连接失败，会重试多次
+     */
+    private synchronized void tryConnect() throws JMSException {
+        int attempt = 0; // 当前尝试次数
+        boolean connected = false; // 连接状态
+
+        // 最大尝试次数控制
+        while (attempt < MAX_RETRIES && !connected) {
+            attempt++;
+            ExecutorService executor = Executors.newSingleThreadExecutor(); // 创建单线程的线程池
+            Future<Boolean> future = executor.submit(() -> {
+                try {
+                    // 创建 ActiveMQ 连接工厂，并开始连接
+                    ConnectionFactory factory = new ActiveMQConnectionFactory(brokerUrl);
+                    connection = factory.createConnection();
+                    connection.start(); // 启动连接
+                    session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE); // 创建会话
+                    return true; // 连接成功
+                } catch (JMSException e) {
+                    throw e; // 抛出连接异常
+                }
+            });
+
+            try {
+                // 等待连接完成，设置超时时间为 5 秒
+                boolean success = future.get(3, TimeUnit.SECONDS);
+                if (success) {
+                    System.out.println(" [√] 第 " + attempt + " 次连接成功");
+                    connected = true; // 设置为已连接
+                }
+            } catch (TimeoutException e) {
+                System.err.println(" [×] 第 " + attempt + " 次连接超时（超过5秒）");
+                future.cancel(true); // 超时则取消该线程
+            } catch (Exception e) {
+                System.err.println(" [×] 第 " + attempt + " 次连接失败: " + e.getMessage());
+            } finally {
+                executor.shutdownNow(); // 强制关闭线程池
+            }
+
+            // 如果未连接成功，等待一段时间后继续重试
+            if (!connected) {
+                try {
+                    Thread.sleep(RETRY_DELAY_MS);
+                } catch (InterruptedException ignored) {}
+            }
+        }
+
+        // 如果重试超过最大次数仍未成功，则退出程序
+        if (!connected) {
+            System.err.println(" [×] 无法建立连接，超过最大尝试次数。系统将停止重试并退出...");
+            System.exit(1); // 程序退出
+        }
+    }
+
+    /**
+     * 发送任务消息到队列
+     * @param task 任务对象
+     * @param <T> 任务类型
      */
     public <T> void sendTask(T task) throws JMSException {
-        // 1. 创建指向队列的Producer
-        Destination destination = session.createQueue(queueName);
-        MessageProducer producer = session.createProducer(destination);
-        // 2. 设置消息持久化
-        producer.setDeliveryMode(DeliveryMode.PERSISTENT);
-        // 3. 对象转JSON并发送
-        String message = gson.toJson(task);
-        TextMessage textMessage = session.createTextMessage(message);
-        producer.send(textMessage);
-        //完成（测试）并释放
-//        System.out.println(" [x] Sent: " + message);
-        producer.close();
+        try {
+            // 创建队列目标
+            Destination destination = session.createQueue(queueName);
+            MessageProducer producer = session.createProducer(destination); // 创建生产者
+            producer.setDeliveryMode(DeliveryMode.PERSISTENT); // 设置消息持久化
+            String message = gson.toJson(task); // 将任务对象转换为 JSON 字符串
+            TextMessage textMessage = session.createTextMessage(message); // 创建消息
+            producer.send(textMessage); // 发送消息
+            producer.close(); // 关闭生产者
+        } catch (JMSException e) {
+            System.err.println(" [!] 发送消息失败，尝试重连...");
+            tryConnect(); // 连接失败后重试连接
+            sendTask(task); // 递归重试发送任务
+        }
     }
 
     /**
-     * 启动消费者（同步监听）
-     * @param taskHandler 任务处理回调接口
+     * 启动消费者，消费队列中的消息
+     * @param taskType 任务的类型
+     * @param taskHandler 消息处理逻辑
+     * @param <T> 任务类型
      */
     public <T> void startConsumer(Class<T> taskType, TaskHandler<T> taskHandler) throws JMSException {
-       //创建指向目的队列的消费者
+        // 创建队列目标
         Destination destination = session.createQueue(queueName);
-        MessageConsumer consumer = session.createConsumer(destination);
-        // 2. 设置异步监听器
+        MessageConsumer consumer = session.createConsumer(destination); // 创建消费者
+
+        // 设置消息监听器
         consumer.setMessageListener(message -> {
             try {
-
+                // 判断是否为 TextMessage 类型
                 if (message instanceof TextMessage) {
-                    // 3. 提取JSON并反序列化
                     TextMessage textMessage = (TextMessage) message;
-                    String json = textMessage.getText();
-                    T task = gson.fromJson(json, taskType);
-
-                    // 处理任务
-                    taskHandler.handle(task);
-
-                    // ActiveMQ 的 AUTO_ACKNOWLEDGE 模式会自动确认消息
+                    String json = textMessage.getText(); // 获取消息内容
+                    T task = gson.fromJson(json, taskType); // 将 JSON 字符串转换为任务对象
+                    taskHandler.handle(task); // 调用任务处理器处理任务
                 }
             } catch (Exception e) {
-                System.err.println(" [!] Task failed: " + e.getMessage());
-                // 在 AUTO_ACKNOWLEDGE 模式下无法手动 NACK，需要特殊处理
+                System.err.println(" [!] 任务处理失败: " + e.getMessage());
+                // 处理异常，比如记录日志等
             }
         });
 
-        System.out.println(" [*] Waiting for messages...");
+        System.out.println(" [*] 消费者已启动，等待消息...");
     }
 
     /**
-     * 关闭连接
+     * 关闭连接和会话
      */
     public void close() throws JMSException {
-        session.close();
-        connection.close();
+        if (session != null) session.close(); // 关闭会话
+        if (connection != null) connection.close(); // 关闭连接
     }
 
-    /**
-     * 任务处理回调接口
-     */
+    // 任务处理接口，消费者调用此方法来处理接收到的任务
     public interface TaskHandler<T> {
         void handle(T task) throws Exception;
     }
 
-    // ==================== 使用示例 ====================
-    public static void main(String[] args) throws Exception {
-        // 1. 初始化队列（队列名: "task_queue"）
-        // ActiveMQ 默认连接地址为 tcp://localhost:61616
-        ActiveMQTaskQueue taskQueue = new ActiveMQTaskQueue("tcp://dk10061fo3371.vicp.fun:13074", "UpdateCar01");
-
-        // 2. 发送任务
-        taskQueue.sendTask(new MyTask("Process data", 3));
-
-        // 3. 启动消费者
-        taskQueue.startConsumer(MyTask.class, task -> {
-            System.out.println(" [x] Processing: " + task.description);
-            Thread.sleep(task.duration * 1000L); // 模拟耗时任务
-            System.out.println(" [x] Done: " + task.description);
-        });
-
-        // 4. 实际应用中保持运行（这里简单示例，暂停10秒）
-        Thread.sleep(10000);
-        taskQueue.close();
-    }
-
-    // 示例任务类（需可序列化）
+    // 示例：任务对象
     static class MyTask {
-        String description;
-        int duration; // seconds
+        String description; // 任务描述
+        int duration; // 任务执行时长（秒）
 
         public MyTask(String description, int duration) {
             this.description = description;
             this.duration = duration;
         }
+    }
+
+    // 主程序示例
+    public static void main(String[] args) throws Exception {
+        // 创建 ActiveMQTaskQueue 实例
+        ActiveMQTaskQueue taskQueue = new ActiveMQTaskQueue("tcp://192.168.43.69:61616", "UpdateCar");
+
+        // 发送任务
+        try {
+            taskQueue.sendTask("001"); // 发送任务消息
+        } catch (Exception e) {
+            System.err.println("发送任务失败：" + e.getMessage());
+        }
+
+
+
+        taskQueue.close(); // 关闭连接
     }
 }

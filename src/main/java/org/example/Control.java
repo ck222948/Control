@@ -50,60 +50,53 @@ public class Control{
      * 检测系统状态并触发消息发送
      */
     public void checkSystemStatus() {
-try {
-    // 1. 从数据库读取状态（模拟）
-    // refreshDatabaseState();
-    IsCarOpen = RedisConnector.get("IsCarOpen");
-    IsNaviOpen = RedisConnector.get("IsNaviOpen");
-    IsViewOpen = RedisConnector.get("IsViewOpen");
-    IsNaViFinish =RedisConnector.get("IsNaviFinish");  // 读取导航状态值
+        try {
+            // 1. 从数据库读取状态（模拟）
+            // refreshDatabaseState();
+            IsCarOpen = RedisConnector.get("IsCarOpen");
+            IsNaviOpen = RedisConnector.get("IsNaviOpen");
+            IsViewOpen = RedisConnector.get("IsViewOpen");
+            IsNaViFinish =RedisConnector.get("IsNaviFinish");  // 读取导航状态值
 
-    // 1. 显示器队列逻辑
-    if (IsViewOpen!=null&&Objects.equals(IsViewOpen, "1")) {
-        sendDisplayData();
-    }
-    System.out.println(lastNaViFinish);
-    System.out.println(IsNaViFinish);
+            // 1. 显示器队列逻辑
+            if (IsViewOpen!=null&&Objects.equals(IsViewOpen, "1")) {
+                sendDisplayData();
+            }
+            System.out.println(lastNaViFinish);
+            System.out.println(IsNaViFinish);
 // 2. 导航队列逻辑
-    if (IsNaviOpen!=null&&(!Objects.equals(IsNaviOpen, "0")) &&(!Objects.equals(lastNaViFinish,IsNaViFinish))) {
+            if (IsNaviOpen!=null&&(!Objects.equals(IsNaviOpen, "0")) &&(!Objects.equals(lastNaViFinish,IsNaViFinish))) {
 
-        sendNaviCommand();
-
-
-    }
-    // 3. 小车队列逻辑
-    if (IsCarOpen!=null&&Objects.equals(IsCarOpen, "1")) {
-        handleCarMessages();
-    }
+                sendNaviCommand();
 
 
+            }
+            // 3. 小车队列逻辑
+            if (IsCarOpen!=null&&Objects.equals(IsCarOpen, "1")) {
+                handleCarMessages();
+            }
 
-    // 4. 检测地图全亮（新增核心逻辑）
-    if (checkMapAllOne()) {
-        System.out.println("地图全亮，停止所有任务");
-        sendDisplayData();
-        String data="#";
-        displayQueue.sendTask("#");
-        System.out.println("[显示器] 数据已发送: " + data);
-        stopAllTasks();  // 停止定时任务并释放资源
-    }
-}
-catch (Exception e) {
-    System.err.println("【错误】checkSystemStatus 执行失败: " + e.getMessage());
-    e.printStackTrace();
-}
+
+
+            // 4. 检测地图全亮（新增核心逻辑）
+            if (checkMapAllOne()) {
+                System.out.println("地图全亮，停止所有任务");
+                sendDisplayData();
+                String data="#";
+                displayQueue.sendTask("#");
+                System.out.println("[显示器] 数据已发送: " + data);
+                stopAllTasks();  // 停止定时任务并释放资源
+            }
+        }
+        catch (Exception e) {
+            System.err.println("【错误】checkSystemStatus 执行失败: " + e.getMessage());
+            e.printStackTrace();
+        }
     }
     /**
      * 检测地图是否全为1（新增方法）
      */
     private boolean checkMapAllOne() {
-       /* String map = RedisConnector.get("map");  // 假设地图数据存储在Redis的"map"键中
-        if (map == null) return false;
-        // 遍历所有字符检查是否为'1'
-        for (char c : map.toCharArray()) {
-            if (c != '1') return false;
-        }
-        return true;}*/
         //-----使用bitmap操作------//
 
         long XTotalNumbers = Long.parseLong(RedisConnector.get("mapWidth"));
@@ -168,7 +161,7 @@ catch (Exception e) {
      */
     private void sendDisplayData() {
         try {
-           String data="repaint";
+            String data="repaint";
             displayQueue.sendTask("repaint");
             System.out.println("[显示器] 数据已发送: " + data);
         } catch (Exception e) {
@@ -216,8 +209,8 @@ catch (Exception e) {
                 CarNumber=0;
             }
             // 2. 一次性获取所有小车数量
-          else
-              CarNumber = Integer.parseInt(RedisConnector.get("CarNumber"));
+            else
+                CarNumber = Integer.parseInt(RedisConnector.get("CarNumber"));
 
             // 3. 使用Redis管道批量获取任务列表
             try (Jedis jedis = RedisConnector.getConnection()) {
@@ -271,12 +264,12 @@ catch (Exception e) {
             if (CarNumberString==null) {
                 CarNumber=0;
             }
-          else
-              CarNumber=Integer.parseInt(RedisConnector.get("CarNumber"));
+            else
+                CarNumber=Integer.parseInt(RedisConnector.get("CarNumber"));
             for(int i=1;i<=CarNumber;i++) {
                 List<String> list= RedisConnector.lrAll("Car00"+i+"TaskList");
                 if (list==null||list.isEmpty()) {
-                String cmd="Car00"+i;
+                    String cmd="Car00"+i;
                     naviQueue.sendTask(cmd);
                     lastNaViFinish = IsNaViFinish;// 更新旧值记录
                     System.out.println("[导航器] 指令已发送: " + cmd);
@@ -366,7 +359,7 @@ catch (Exception e) {
         RedisConnector.lpush("CarIdTaskList","1,1","2,2" );
         System.out.println(RedisConnector.lrAll("CarIdTaskList"));*//*
 
-      *//*  TaskProducer taskProducer=new TaskProducer("tcp://192.168.43.69:61616","CarId001");
+     *//*  TaskProducer taskProducer=new TaskProducer("tcp://192.168.43.69:61616","CarId001");
         taskProducer.sendTask("gogogo");
 //        taskProducer.sendTask(map);
         TaskProducer taskProducer1=new TaskProducer("tcp://192.168.43.69:61616","UpdateNavigate");
