@@ -169,38 +169,12 @@ public class RedisConnector{
         }
     }
 
-    /** 设置哈希表字段 */
-    public static void hset(String key, String field, String value) {
-        try (Jedis jedis = getConnection()) {
-            jedis.hset(key, field, value);
-        }
-    }
 
-    /** 获取哈希表字段值 */
-    public static String hget(String key, String field) {
-        try (Jedis jedis = getConnection()) {
-            return jedis.hget(key, field);
-        }
-    }
 
-    /** 获取整个哈希表 */
-    public static Map<String, String> hgetAll(String key) {
-        try (Jedis jedis = getConnection()) {
-            return jedis.hgetAll(key);
-        }
-    }
+
 
     // ------------ 高级功能 ------------
 
-    /** 执行事务（示例） */
-    public static List<Object> executeTransaction() {
-        try (Jedis jedis = getConnection()) {
-            Transaction tx = jedis.multi();
-            tx.set("tx_key1", "value1");
-            tx.set("tx_key2", "value2");
-            return tx.exec();
-        }
-    }
 // ------------ 列表(List)操作 ------------
 
     /** 从列表左侧插入元素 */
@@ -231,19 +205,6 @@ public class RedisConnector{
 
     }
 
-    /** 从列表左侧弹出元素 */
-    public static String lpop(String key) {
-        try (Jedis jedis = getConnection()) {
-            return jedis.lpop(key);
-        }
-    }
-
-    /** 从列表右侧弹出元素 */
-    public static String rpop(String key) {
-        try (Jedis jedis = getConnection()) {
-            return jedis.rpop(key);
-        }
-    }
 
     /** 获取列表长度 */
     public static long llen(String key) {
@@ -252,12 +213,6 @@ public class RedisConnector{
         }
     }
 
-    /** 修剪列表，只保留指定范围内的元素 */
-    public static String ltrim(String key, long start, long stop) {
-        try (Jedis jedis = getConnection()) {
-            return jedis.ltrim(key, start, stop);
-        }
-    }
      /**清空数据库**/
     public static void flushDB() {
         try (Jedis jedis =getConnection()) {

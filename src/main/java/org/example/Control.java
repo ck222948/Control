@@ -97,13 +97,6 @@ catch (Exception e) {
      * 检测地图是否全为1（新增方法）
      */
     private boolean checkMapAllOne() {
-       /* String map = RedisConnector.get("map");  // 假设地图数据存储在Redis的"map"键中
-        if (map == null) return false;
-        // 遍历所有字符检查是否为'1'
-        for (char c : map.toCharArray()) {
-            if (c != '1') return false;
-        }
-        return true;}*/
         //-----使用bitmap操作------//
 
         long XTotalNumbers = Long.parseLong(RedisConnector.get("mapWidth"));

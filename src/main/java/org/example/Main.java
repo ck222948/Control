@@ -1,12 +1,13 @@
 package org.example;
 
+import javax.jms.Connection;
 import javax.jms.JMSException;
 import java.util.concurrent.TimeUnit;
 
 import static org.example.Control.scheduler;
 
 public class Main {
-
+    private static volatile boolean isPaused = false;  // 使用 volatile 保证可见性
     public static long startTime = System.nanoTime();
     public static void main(String[] args) throws JMSException {
 
@@ -18,8 +19,25 @@ public class Main {
         control.statusCheckFuture = scheduler.scheduleAtFixedRate(
                 () -> {
                     try {
-                        control.checkSystemStatus();
-                    } catch (Exception e) {
+                        String StopMark=RedisConnector.get("StopMark");
+                        if(StopMark!=null&& StopMark.equals("1")) {
+                            if (!isPaused) {
+                                System.out.println("实验已暂停");
+                                isPaused = true;
+                            }
+                            return;  // 直接跳过，不执行后续逻辑
+                        }
+                        else{
+                            if (isPaused) {
+                                System.out.println("实验已恢复");
+                                isPaused = false;
+                            }
+
+                            }
+
+                        control.checkSystemStatus();  // 正常执行
+                    }
+                    catch (Exception e) {
                         System.err.println("定时任务执行异常: " + e.getMessage());
                         // 发生异常时停止所有任务
                         control.stopAllTasks();
