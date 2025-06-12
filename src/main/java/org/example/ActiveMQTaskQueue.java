@@ -10,6 +10,8 @@ public class ActiveMQTaskQueue {
     private final String brokerUrl; // ActiveMQ Broker 的 URL
     private final String queueName; // 队列名称
     private final Gson gson = new Gson(); // Gson 用于对象和 JSON 字符串之间的转换
+    @Deprecated
+    private static volatile boolean isReconnecting = false; // 标记是否正在重连
 
     private Connection connection; // ActiveMQ 连接
     private Session session; // JMS 会话
@@ -31,7 +33,7 @@ public class ActiveMQTaskQueue {
     private synchronized void tryConnect() throws JMSException {
         int attempt = 0; // 当前尝试次数
         boolean connected = false; // 连接状态
-
+        SystemStatus.isMQReconnecting = true; // 开始重连，设置标志为 true
         // 最大尝试次数控制
         while (attempt < MAX_RETRIES && !connected) {
             attempt++;
@@ -72,6 +74,7 @@ public class ActiveMQTaskQueue {
                 } catch (InterruptedException ignored) {}
             }
         }
+        SystemStatus.isMQReconnecting = false; // 重连完成，标志设置为 false
 
         // 如果重试超过最大次数仍未成功，则退出程序
         if (!connected) {

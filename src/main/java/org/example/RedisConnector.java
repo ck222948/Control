@@ -11,13 +11,15 @@ import java.util.concurrent.TimeUnit;
 public class RedisConnector {
     private static JedisPool jedisPool;
     private static final int MAX_TOTAL = 128;      // 最大连接数
+
     private static final int MAX_IDLE = 32;        // 最大空闲连接
     private static final int TIMEOUT = 2000;       // 连接超时（毫秒）
 
     // 重连机制配置
     private static final int RECONNECT_INTERVAL = 2000; // 重连间隔(毫秒)
     private static final int MAX_RETRY_TIMES = 5;       // 最大重试次数
-    public static volatile boolean isReconnecting = false; // 是否正在重连
+    @Deprecated
+    public static volatile boolean isRedisReconnecting = false;  // 不再使用，仅保留兼容性
 
     // 静态初始化连接池
     static {
@@ -63,7 +65,7 @@ public class RedisConnector {
 
                 if (retryCount <= MAX_RETRY_TIMES) {
                     // 启动异步重连线程
-                    if (!isReconnecting) {
+                    if (!SystemStatus.isRedisReconnecting) {
                         startReconnectThread("192.168.43.69", 6379, null);  // 启动重连
                     }
 
@@ -82,12 +84,12 @@ public class RedisConnector {
 
     // 启动异步重连线程
     private static synchronized void startReconnectThread(String host, int port, String password) {
-        if (isReconnecting) {
+        if (!SystemStatus.isRedisReconnecting) {
             System.out.println("重连任务正在进行中，跳过此次重连");
             return;
         }
 
-        isReconnecting = true;
+        SystemStatus.isRedisReconnecting = true;
         new Thread(() -> {
             System.out.println("启动Redis重连线程...");
             int attempt = 0;
@@ -129,7 +131,7 @@ public class RedisConnector {
                 }
             }
 
-            isReconnecting = false;
+            SystemStatus.isRedisReconnecting = false;
             if (!success) {
                 System.err.println("Redis重连失败，已达到最大重试次数");
             }

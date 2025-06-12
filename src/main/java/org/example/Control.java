@@ -34,7 +34,7 @@ public class Control{
     private final TaskProducer displayQueue;
 
     // 线程池
-    public static final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(2);
+    public static final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(5);
 
     public  Control() throws JMSException {
         // 初始化消息队列

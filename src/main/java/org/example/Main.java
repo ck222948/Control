@@ -16,8 +16,9 @@ public class Main {
         control.statusCheckFuture = scheduler.scheduleAtFixedRate(
                 () -> {
                     // 如果正在重连，暂停定时任务的执行
-                    if (RedisConnector.isReconnecting) {
-                        return;  // 直接跳过，不执行后续逻辑
+                    // 检查 Redis 或 MQ 是否正在重连
+                    if (SystemStatus.isAnyReconnecting()) {
+                        return;
                     }
 
                     try {
@@ -45,7 +46,7 @@ public class Main {
                     }
                 },
                 0,  // 初始延迟（0 表示立即执行）
-                500,  // 执行间隔（1 秒）
+                100,  // 执行间隔（1 秒）
                 TimeUnit.MILLISECONDS  // 时间单位改为毫秒
         );
     }
